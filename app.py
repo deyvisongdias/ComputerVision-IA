@@ -111,6 +111,32 @@ def busca_backtracking(estado_atual, caminho, visitados):
     visitados.remove(estado_tuple)
     return None
 
+
+def busca_profundidade(estado_inicial):
+    pilha = [[estado_inicial]]
+    visitados = set()
+    
+    while pilha:
+        caminho = pilha.pop()
+        estado_atual = caminho[-1]
+        
+        estado_tuple = (estado_atual.lado_a, estado_atual.lanterna)
+        if estado_tuple in visitados:
+            continue
+        visitados.add(estado_tuple)
+        
+        if todos_no_lado_b(estado_atual) and estado_atual.tempo == 17:
+            print("Solução encontrada (Busca em Profundidade):")
+            imprimir_caminho(caminho)
+            return caminho
+        
+        for prox_estado in estado_atual.gerar_proximos_estados():
+            pilha.append(caminho + [prox_estado])
+    
+    print("Nenhuma solução encontrada!")
+    return None
+
+
 def desenhar_grafo(caminho):
     G = nx.DiGraph()
     labels = {}
@@ -135,11 +161,13 @@ def desenhar_grafo(caminho):
 
 # Execução
 estado_inicial = Estado([True, True, True, True], True, 0)
-modo = input("Escolha o método de busca (largura ou backtracking): ").strip().lower()
+modo = input("Escolha o método de busca (largura, backtracking ou profundidade): ").strip().lower()
 if modo == "largura":
     caminho_solucao = busca_largura(estado_inicial)
 elif modo == "backtracking":
     caminho_solucao = busca_backtracking(estado_inicial, [estado_inicial], set())
+elif modo == "profundidade":
+    caminho_solucao = busca_profundidade(estado_inicial)
 else:
     print("Método inválido!")
     caminho_solucao = None
