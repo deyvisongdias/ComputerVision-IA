@@ -3,16 +3,36 @@ import networkx as nx
 import matplotlib.pyplot as plt
 
 # Tempos de travessia de cada membro da banda
-tempos = [1, 2, 5, 10]  # Bono: 1, Edge: 2, Adam: 5, Larry: 10
-nomes = ["Bono", "Edge", "Adam", "Larry"]
+info = [
+            {"nome": "Bono", "tempo": 1}, 
+            {"nome": "Edge", "tempo": 2}, 
+            {"nome": "Adam", "tempo": 5}, 
+            {"nome": "Larry", "tempo": 10}
+]
+
+transicoes_esquerda = [
+    ["Bono", "Edge"],
+    ["Bono", "Adam"],
+    ["Bono", "Larry"],
+    ["Edge", "Adam"],
+    ["Edge", "Larry"],
+    ["Adam", "Larry"]
+]
+
+transicoes_direita = [
+    ["Bono"],
+    ["Edge"],
+    ["Adam"],
+    ["Larry"]
+]
 
 class Estado:
-    def __init__(self, lado_a, lanterna, tempo, movimento=None, voltou=False):
-        self.lado_a = tuple(lado_a)  # Usar tuple para imutabilidade
+    def __init__(self, lado_esquerdo, lado_direito, lanterna, tempo, movimento=None):
+        self.lado_esquerdo = lado_esquerdo  # Usar tuple para imutabilidade
+        self.lado_direito = lado_direito  # Usar tuple para imutabilidade
         self.lanterna = lanterna
         self.tempo = tempo
         self.movimento = movimento  # Guarda quem atravessou
-        self.voltou = voltou  # Indica se foi um retorno
 
     def __lt__(self, outro):
         return self.tempo < outro.tempo  # Para comparação na busca
@@ -20,46 +40,99 @@ class Estado:
     def __repr__(self):
         movimento_str = ""
         if self.movimento:
-            if self.voltou:
+            if (self.lanterna == "esquerda"):
                 movimento_str = f" <- {' e '.join(self.movimento)} voltou"
             else:
                 movimento_str = f" -> {' e '.join(self.movimento)} foram"
+        else:
+            movimento_str = "\n - Início do problema"
         
-        return f"Tempo: {self.tempo}, Lanterna no lado {'A' if self.lanterna else 'B'}, " \
-               f"Membros no lado A: {self.lado_a}{movimento_str}"
+        tabulations = "\t\t\t\t\t"
+        for i in range(len(self.lado_esquerdo)):
+            tabulations = tabulations[:-1]
+
+        return f"{movimento_str} \t| Tempo: {self.tempo} \t| Lado esquerdo: {self.lado_esquerdo} {tabulations}| Lado direito: {self.lado_direito}\n"
 
     def gerar_proximos_estados(self):
         proximos_estados = []
-        lado_atual = [i for i, presente in enumerate(self.lado_a) if presente == self.lanterna]
-        
-        # Duas pessoas atravessam para o outro lado
-        for i in range(len(lado_atual)):
-            for j in range(i + 1, len(lado_atual)):
-                novo_lado_a = list(self.lado_a)
-                novo_lado_a[lado_atual[i]] = not novo_lado_a[lado_atual[i]]
-                novo_lado_a[lado_atual[j]] = not novo_lado_a[lado_atual[j]]
-                novo_tempo = self.tempo + max(tempos[lado_atual[i]], tempos[lado_atual[j]])
+        lado_atual = []
+        transicoes = []
+
+        if(self.lanterna == "esquerda"):
+            for transicao in transicoes_esquerda:
+                lado_atual = self.lado_esquerdo.copy()
+
+                for membro in lado_atual:
+                    if(membro in transicao):
+                        lado_atual.remove(membro)
+                        for outro_membro in lado_atual:
+                            if(outro_membro in transicao):
+                                if(transicao not in transicoes):
+                                    transicoes.append(transicao)                   
+
+            for transicao in transicoes:
+                novo_lado_esquerdo = self.lado_esquerdo.copy()
+                novo_lado_esquerdo.remove(transicao[0])
+                novo_lado_esquerdo.remove(transicao[1])
+
+                novo_lado_direito = self.lado_direito.copy()
+                novo_lado_direito.append(transicao[0])
+                novo_lado_direito.append(transicao[1])
+
+                lanterna = "direita"
+
+                tempo = self.tempo
+                tempo_gasto = 0
+
+                movimento = []
+
+                for membro in info:
+                    if(membro.get("nome") == transicao[0] or membro.get("nome") == transicao[1]):
+                        tempo_gasto = max(tempo_gasto, membro.get("tempo"))
+                        movimento.append(membro.get("nome"))
                 
-                if novo_tempo <= 17:  # Garante que não ultrapassa o tempo limite
-                    movimento = [nomes[lado_atual[i]], nomes[lado_atual[j]]]
-                    novo_estado = Estado(novo_lado_a, not self.lanterna, novo_tempo, movimento, voltou=False)
-                    proximos_estados.append(novo_estado)
-                    
-                    # Agora, uma pessoa deve voltar com a lanterna, se necessário
-                    lado_b = [k for k in range(4) if not novo_lado_a[k]]
-                    if not novo_estado.lanterna and lado_b:  # A lanterna está no lado B e há pessoas para voltar
-                        for k in lado_b:
-                            if tempos[k] + novo_tempo <= 17:  # Garante que o retorno não ultrapasse o tempo limite
-                                lado_retorno = list(novo_lado_a)
-                                lado_retorno[k] = True  # Volta para o lado A
-                                tempo_retorno = novo_tempo + tempos[k]
-                                movimento_retorno = [nomes[k]]
-                                proximos_estados.append(Estado(lado_retorno, True, tempo_retorno, movimento_retorno, voltou=True))
+                tempo = tempo + tempo_gasto
+                
+                novo_estado = Estado(novo_lado_esquerdo, novo_lado_direito, lanterna, tempo, movimento)
+
+                proximos_estados.append(novo_estado)
+
+        if(self.lanterna == "direita"):
+            lado_atual = self.lado_direito.copy()
+
+            for transicao in transicoes_direita:
+                for membro in lado_atual:
+                    if(membro in transicao):
+                        transicoes.append(transicao)                   
+
+            for transicao in transicoes:
+                novo_lado_esquerdo = self.lado_esquerdo.copy()
+                novo_lado_esquerdo.append(transicao[0])
+
+                novo_lado_direito = self.lado_direito.copy()
+                novo_lado_direito.remove(transicao[0])
+
+                lanterna = "esquerda"
+
+                tempo = self.tempo
+
+                movimento = []
+
+                for membro in info:
+                    if(membro.get("nome") == transicao[0]):
+                        tempo = tempo + membro.get("tempo")
+                        movimento.append(membro.get("nome"))
+                
+                novo_estado = Estado(novo_lado_esquerdo, novo_lado_direito, lanterna, tempo, movimento)
+
+                proximos_estados.append(novo_estado)
         
         return proximos_estados
 
-def todos_no_lado_b(estado):
-    return all(not membro for membro in estado.lado_a)
+def todos_no_lado_direito(estado):
+    if(len(estado.lado_esquerdo) == 0):
+        return True    
+    return False
 
 def imprimir_caminho(caminho):
     for estado in caminho:
@@ -67,18 +140,18 @@ def imprimir_caminho(caminho):
 
 def busca_largura(estado_inicial):
     fila = deque([[estado_inicial]])
-    visitados = set()
+    visitados = []
     
     while fila:
         caminho = fila.popleft()
         estado_atual = caminho[-1]
         
-        estado_tuple = (estado_atual.lado_a, estado_atual.lanterna)
+        estado_tuple = (estado_atual.lado_esquerdo, estado_atual.lado_direito, estado_atual.lanterna)
         if estado_tuple in visitados:
             continue
-        visitados.add(estado_tuple)
+        visitados.append(estado_tuple)
         
-        if todos_no_lado_b(estado_atual) and estado_atual.tempo == 17:
+        if todos_no_lado_direito(estado_atual) and estado_atual.tempo <= 17:
             print("Solução encontrada (Busca em Largura):")
             imprimir_caminho(caminho)
             return caminho
@@ -93,12 +166,12 @@ def busca_backtracking(estado_atual, caminho, visitados):
     if estado_atual.tempo > 17:
         return None
     
-    estado_tuple = (estado_atual.lado_a, estado_atual.lanterna)
+    estado_tuple = (estado_atual.lado_esquerdo, estado_atual.lanterna)
     if estado_tuple in visitados:
         return None
-    visitados.add(estado_tuple)
+    visitados.append(estado_tuple)
     
-    if todos_no_lado_b(estado_atual) and estado_atual.tempo == 17:
+    if todos_no_lado_direito(estado_atual) and estado_atual.tempo <= 17:
         print("Solução encontrada (Backtracking):")
         imprimir_caminho(caminho)
         return caminho
@@ -114,18 +187,18 @@ def busca_backtracking(estado_atual, caminho, visitados):
 
 def busca_profundidade(estado_inicial):
     pilha = [[estado_inicial]]
-    visitados = set()
+    visitados = []
     
     while pilha:
         caminho = pilha.pop()
         estado_atual = caminho[-1]
         
-        estado_tuple = (estado_atual.lado_a, estado_atual.lanterna)
+        estado_tuple = (estado_atual.lado_esquerdo, estado_atual.lado_direito, estado_atual.lanterna)
         if estado_tuple in visitados:
             continue
-        visitados.add(estado_tuple)
+        visitados.append(estado_tuple)
         
-        if todos_no_lado_b(estado_atual) and estado_atual.tempo == 17:
+        if todos_no_lado_direito(estado_atual) and estado_atual.tempo <= 17:
             print("Solução encontrada (Busca em Profundidade):")
             imprimir_caminho(caminho)
             return caminho
@@ -160,13 +233,14 @@ def desenhar_grafo(caminho):
     plt.show()
 
 # Execução
-estado_inicial = Estado([True, True, True, True], True, 0)
-modo = input("Escolha o método de busca (largura, backtracking ou profundidade): ").strip().lower()
-if modo == "largura":
+estado_inicial = Estado(["Bono", "Edge", "Adam", "Larry"], [], "esquerda", 0)
+
+modo = input("Escolha o método de busca (largura (l), backtracking (b) ou profundidade (p)): ").strip().lower()
+if modo == "l":
     caminho_solucao = busca_largura(estado_inicial)
-elif modo == "backtracking":
-    caminho_solucao = busca_backtracking(estado_inicial, [estado_inicial], set())
-elif modo == "profundidade":
+elif modo == "b":
+    caminho_solucao = busca_backtracking(estado_inicial, [estado_inicial], [])
+elif modo == "p":
     caminho_solucao = busca_profundidade(estado_inicial)
 else:
     print("Método inválido!")
