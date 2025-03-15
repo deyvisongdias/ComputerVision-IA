@@ -216,12 +216,13 @@ def desenhar_grafo(caminho):
     cores = []
     
     for i, estado in enumerate(caminho):
-        lado_a = [nomes[j] for j, presente in enumerate(estado.lado_a) if presente]
-        lado_b = [nomes[j] for j, presente in enumerate(estado.lado_a) if not presente]
-        labels[i] = f"Tempo: {estado.tempo}m\nLado A: {', '.join(lado_a)}\nLado B: {', '.join(lado_b)}"
+        lado_esq = estado.lado_esquerdo
+        lado_dir = estado.lado_direito
+        labels[i] = f"Tempo: {estado.tempo}m\nEsquerdo: {', '.join(lado_esq)}\nDireito: {', '.join(lado_dir)}"
         
         G.add_node(i, label=labels[i])
-        cores.append("lightgreen" if estado.voltou else "lightblue")
+        # Define a cor com base na posição da lanterna
+        cores.append("lightgreen" if estado.lanterna == "esquerda" else "lightblue")
         
         if i > 0:
             G.add_edge(i - 1, i)
