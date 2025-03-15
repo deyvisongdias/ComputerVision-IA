@@ -264,14 +264,24 @@ def heuristica(estado):
                 break
     return soma
 
+def heuristica(estado):
+    # Heurística: tempo máximo de travessia dos membros no lado esquerdo
+    max_tempo = 0
+    for nome in estado.lado_esquerdo:
+        for membro in info:
+            if membro["nome"] == nome:
+                max_tempo = max(max_tempo, membro["tempo"])
+                break
+    return max_tempo
+
 def busca_gulosa(estado_inicial):
-    fila = [(heuristica(estado_inicial), 0, [estado_inicial])]  # (heurística, contador, caminho)
-    contador = 1  # Contador para desempate
+    # Inicializa a fila de prioridade com o estado inicial
+    fila = [(heuristica(estado_inicial), [estado_inicial])] # (heurística, caminho)
     visitados = set()
     
     while fila:
         # Obtém o caminho com menor valor heurístico
-        _, _, caminho = heapq.heappop(fila)
+        h, caminho = heapq.heappop(fila)  # Desempacota corretamente
         estado_atual = caminho[-1]
         
         # Cria uma representação única do estado para verificar se já foi visitado
@@ -305,8 +315,7 @@ def busca_gulosa(estado_inicial):
             
             # Adiciona o novo caminho à fila, com prioridade baseada na heurística
             h = heuristica(prox_estado)
-            heapq.heappush(fila, (h, contador, novo_caminho))
-            contador += 1
+            heapq.heappush(fila, (h, novo_caminho))
     
     print("Nenhuma solução encontrada (Busca Gulosa)!")
     return None
