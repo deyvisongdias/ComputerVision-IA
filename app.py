@@ -187,23 +187,23 @@ def busca_backtracking(estado_atual, caminho, visitados):
 
 def busca_profundidade(estado_inicial):
     pilha = [[estado_inicial]]
-    visitados = []
+    visitados = set()
     
     while pilha:
         caminho = pilha.pop()
         estado_atual = caminho[-1]
         
-        estado_tuple = (estado_atual.lado_esquerdo, estado_atual.lado_direito, estado_atual.lanterna)
+        estado_tuple = (tuple(estado_atual.lado_esquerdo), tuple(estado_atual.lado_direito), estado_atual.lanterna)
         if estado_tuple in visitados:
             continue
-        visitados.append(estado_tuple)
+        visitados.add(estado_tuple)
         
         if todos_no_lado_direito(estado_atual) and estado_atual.tempo <= 17:
             print("Solução encontrada (Busca em Profundidade):")
             imprimir_caminho(caminho)
             return caminho
         
-        for prox_estado in estado_atual.gerar_proximos_estados():
+        for prox_estado in reversed(estado_atual.gerar_proximos_estados()):
             pilha.append(caminho + [prox_estado])
     
     print("Nenhuma solução encontrada!")
