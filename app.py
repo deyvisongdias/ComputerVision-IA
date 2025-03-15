@@ -254,6 +254,106 @@ def busca_ordenada(estado_inicial):
     print("Nenhuma solução encontrada!")
     return None
 
+def heuristica(estado):
+    soma = 0
+    for nome in estado.lado_esquerdo:
+        # Encontra o tempo de travessia de cada membro ainda no lado esquerdo
+        for membro in info:
+            if membro["nome"] == nome:
+                soma += membro["tempo"]
+                break
+    return soma
+
+def busca_gulosa(estado_inicial):
+    fila = [(heuristica(estado_inicial), 0, [estado_inicial])]  # (heurística, contador, caminho)
+    contador = 1  # Contador para desempate
+    visitados = set()
+    
+    while fila:
+        # Obtém o caminho com menor valor heurístico
+        _, _, caminho = heapq.heappop(fila)
+        estado_atual = caminho[-1]
+        
+        # Cria uma representação única do estado para verificar se já foi visitado
+        estado_tuple = (tuple(sorted(estado_atual.lado_esquerdo)), 
+                        tuple(sorted(estado_atual.lado_direito)), 
+                        estado_atual.lanterna)
+        
+        if estado_tuple in visitados:
+            continue
+        
+        visitados.add(estado_tuple)
+        
+        # Verifica se chegou ao objetivo
+        if todos_no_lado_direito(estado_atual):
+            if estado_atual.tempo <= 17:  # Verifica tempo máximo
+                print("Solução encontrada (Busca Gulosa):")
+                imprimir_caminho(caminho)
+                return caminho
+            continue  # Pula este estado se exceder 17 minutos
+        
+        # Gera os próximos estados
+        proximos_estados = estado_atual.gerar_proximos_estados()
+        
+        for prox_estado in proximos_estados:
+            # Verifica se o próximo estado não excede o tempo limite
+            if prox_estado.tempo > 17:
+                continue
+                
+            # Cria um novo caminho adicionando o próximo estado
+            novo_caminho = caminho + [prox_estado]
+            
+            # Adiciona o novo caminho à fila, com prioridade baseada na heurística
+            h = heuristica(prox_estado)
+            heapq.heappush(fila, (h, contador, novo_caminho))
+            contador += 1
+    
+    print("Nenhuma solução encontrada (Busca Gulosa)!")
+    return None
+
+def busca_aestrela(estado_inicial):
+    fila = [(custo_real(estado_inicial) + heuristica(estado_inicial), 0, [estado_inicial])]  # (f, contador, caminho)
+    contador = 1  # Contador para desempate
+    visitados = set()
+    
+    while fila:
+        # Obtém o caminho com menor f = g + h
+        _, _, caminho = heapq.heappop(fila)
+        estado_atual = caminho[-1]
+        
+        # Cria uma representação única do estado para verificar se já foi visitado
+        estado_tuple = (tuple(sorted(estado_atual.lado_esquerdo)), 
+                        tuple(sorted(estado_atual.lado_direito)), 
+                        estado_atual.lanterna)
+        
+        if estado_tuple in visitados:
+            continue
+        
+        visitados.add(estado_tuple)
+        
+        # Verifica se chegou ao objetivo
+        if todos_no_lado_direito(estado_atual):
+            if estado_atual.tempo <= 17:  # Verifica tempo máximo
+                print("Solução encontrada (Busca A*):")
+                imprimir_caminho(caminho)
+                return caminho
+            continue  # Pula este estado se exceder 17 minutos
+        
+        # Gera os próximos estados
+        proximos_estados = estado_atual.gerar_proximos_estados()
+        
+        for prox_estado in proximos_estados:
+            # Cria um novo caminho adicionando o próximo estado
+            novo_caminho = caminho + [prox_estado]
+            
+            # Adiciona o novo caminho à fila, com prioridade f = g + h
+            f = custo_real(prox_estado) + heuristica(prox_estado)
+            heapq.heappush(fila, (f, contador, novo_caminho))
+            contador += 1
+    
+    print("Nenhuma solução encontrada (Busca A*)!")
+    return None
+
 
 def desenhar_grafo(caminho):
     G = nx.DiGraph()
@@ -281,7 +381,7 @@ def desenhar_grafo(caminho):
 # Execução
 estado_inicial = Estado(["Bono", "Edge", "Adam", "Larry"], [], "esquerda", 0)
 
-modo = input("Escolha o método de busca (largura (l), backtracking (b), ordenada(o) ou profundidade (p)): ").strip().lower()
+modo = input("Escolha o método de busca (largura (l), backtracking (b), profundidade (p), ordenada (o), gulosa (g) ou A* (a)): ").strip().lower()
 if modo == "l":
     caminho_solucao = busca_largura(estado_inicial)
 elif modo == "b":
@@ -289,7 +389,11 @@ elif modo == "b":
 elif modo == "p":
     caminho_solucao = busca_profundidade(estado_inicial)
 elif modo == "o":
-    caminho_solucao = busca_ordenada(estado_inicial)    
+    caminho_solucao = busca_ordenada(estado_inicial)
+elif modo == "g":
+    caminho_solucao = busca_gulosa(estado_inicial)
+elif modo == "a":
+    caminho_solucao = busca_aestrela(estado_inicial)        
 else:
     print("Método inválido!")
     caminho_solucao = None
