@@ -2,6 +2,7 @@ from collections import deque
 import networkx as nx
 import matplotlib.pyplot as plt
 import heapq
+import time
 
 # Tempos de travessia de cada membro da banda
 info = [
@@ -146,6 +147,7 @@ def imprimir_caminho(caminho):
 
 
 def busca_largura(estado_inicial):
+    tempo_inicial = time.time()
     fila = deque([[estado_inicial]])
     visitados = []
 
@@ -160,34 +162,50 @@ def busca_largura(estado_inicial):
         visitados.append(estado_tuple)
 
         if todos_no_lado_direito(estado_atual) and estado_atual.tempo <= 17:
+            tempo_final = time.time()
+            tempoTotal = tempo_final - tempo_inicial
             print("Solução encontrada (Busca em Largura):")
+            print(f"Tempo de execução: {tempoTotal:.6f} segundos")
             imprimir_caminho(caminho)
             return caminho
 
         for prox_estado in estado_atual.gerar_proximos_estados():
             fila.append(caminho + [prox_estado])
 
+    tempo_final = time.time()
+    tempoTotal = tempo_final - tempo_inicial
     print("Nenhuma solução encontrada!")
+    print(f"Tempo de execução: {tempoTotal:.6f} segundos")
     return None
 
 
-def busca_backtracking(estado_atual, caminho, visitados):
+def busca_backtracking(estado_atual, caminho, visitados, tempo_inicial=None):
+    if tempo_inicial is None:
+        tempo_inicial = time.time()
+
     if estado_atual.tempo > 17:
+        tempo_final = time.time()
+        tempoTotal = tempo_final - tempo_inicial
         return None
 
     estado_tuple = (estado_atual.lado_esquerdo, estado_atual.lanterna)
     if estado_tuple in visitados:
+        tempo_final = time.time()
+        tempoTotal = tempo_final - tempo_inicial
         return None
     visitados.append(estado_tuple)
 
     if todos_no_lado_direito(estado_atual) and estado_atual.tempo <= 17:
+        tempo_final = time.time()
+        tempoTotal = tempo_final - tempo_inicial
         print("Solução encontrada (Backtracking):")
+        print(f"Tempo de execução: {tempoTotal:.6f} segundos")
         imprimir_caminho(caminho)
         return caminho
 
     for prox_estado in estado_atual.gerar_proximos_estados():
         resultado = busca_backtracking(
-            prox_estado, caminho + [prox_estado], visitados)
+            prox_estado, caminho + [prox_estado], visitados, tempo_inicial)
         if resultado:
             return resultado
 
@@ -196,6 +214,7 @@ def busca_backtracking(estado_atual, caminho, visitados):
 
 
 def busca_profundidade(estado_inicial):
+    tempo_inicial = time.time()
     pilha = [[estado_inicial]]
     visitados = set()
 
@@ -210,14 +229,20 @@ def busca_profundidade(estado_inicial):
         visitados.add(estado_tuple)
 
         if todos_no_lado_direito(estado_atual) and estado_atual.tempo <= 17:
+            tempo_final = time.time()
+            tempoTotal = tempo_final - tempo_inicial
             print("Solução encontrada (Busca em Profundidade):")
+            print(f"Tempo de execução: {tempoTotal:.6f} segundos")
             imprimir_caminho(caminho)
             return caminho
 
         for prox_estado in reversed(estado_atual.gerar_proximos_estados()):
             pilha.append(caminho + [prox_estado])
 
+    tempo_final = time.time()
+    tempoTotal = tempo_final - tempo_inicial
     print("Nenhuma solução encontrada!")
+    print(f"Tempo de execução: {tempoTotal:.6f} segundos")
     return None
 
 
@@ -226,6 +251,7 @@ def custo_real(estado):
 
 
 def busca_ordenada(estado_inicial):
+    tempo_inicial = time.time()
     # Inicializa a fila com o caminho inicial contendo apenas o estado inicial
     fila = [(custo_real(estado_inicial), [estado_inicial])]
     visitados = set()
@@ -248,7 +274,10 @@ def busca_ordenada(estado_inicial):
         # Verifica se chegou ao objetivo
         if todos_no_lado_direito(estado_atual):
             if estado_atual.tempo <= 17:  # Adiciona verificação do tempo máximo
+                tempo_final = time.time()
+                tempoTotal = tempo_final - tempo_inicial
                 print("Solução encontrada (Busca Ordenada):")
+                print(f"Tempo de execução: {tempoTotal:.6f} segundos")
                 imprimir_caminho(caminho)
                 return caminho
             continue  # Pula este estado se exceder 17 minutos
@@ -263,7 +292,10 @@ def busca_ordenada(estado_inicial):
             # Adiciona o novo caminho à fila, com prioridade baseada no custo real
             heapq.heappush(fila, (custo_real(prox_estado), novo_caminho))
 
+    tempo_final = time.time()
+    tempoTotal = tempo_final - tempo_inicial
     print("Nenhuma solução encontrada!")
+    print(f"Tempo de execução: {tempoTotal:.6f} segundos")
     return None
 
 
@@ -295,6 +327,7 @@ def heuristica(estado):
 
 
 def busca_gulosa(estado_inicial):
+    tempo_inicial = time.time()
     # Inicializa a fila de prioridade com o estado inicial
     # (heurística, caminho)
     fila = [(heuristica(estado_inicial), [estado_inicial])]
@@ -318,7 +351,10 @@ def busca_gulosa(estado_inicial):
         # Verifica se chegou ao objetivo
         if todos_no_lado_direito(estado_atual):
             if estado_atual.tempo <= 17:  # Verifica tempo máximo
+                tempo_final = time.time()
+                tempoTotal = tempo_final - tempo_inicial
                 print("Solução encontrada (Busca Gulosa):")
+                print(f"Tempo de execução: {tempoTotal:.6f} segundos")
                 imprimir_caminho(caminho)
                 return caminho
             continue  # Pula este estado se exceder 17 minutos
@@ -338,7 +374,10 @@ def busca_gulosa(estado_inicial):
             h = heuristica(prox_estado)
             heapq.heappush(fila, (h, novo_caminho))
 
+    tempo_final = time.time()
+    tempoTotal = tempo_final - tempo_inicial
     print("Nenhuma solução encontrada (Busca Gulosa)!")
+    print(f"Tempo de execução: {tempoTotal:.6f} segundos")
     return None
 
 
@@ -429,7 +468,13 @@ modo = input("Escolha o método de busca (largura (l), backtracking (b), profund
 if modo == "l":
     caminho_solucao = busca_largura(estado_inicial)
 elif modo == "b":
+    tempo_inicial = time.time()
     caminho_solucao = busca_backtracking(estado_inicial, [estado_inicial], [])
+    if not caminho_solucao:
+        tempo_final = time.time()
+        tempoTotal = tempo_final - tempo_inicial
+        print("Nenhuma solução encontrada (Backtracking)!")
+        print(f"Tempo de execução: {tempoTotal:.6f} segundos")
 elif modo == "p":
     caminho_solucao = busca_profundidade(estado_inicial)
 elif modo == "o":
