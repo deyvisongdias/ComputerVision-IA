@@ -555,6 +555,375 @@ def busca_largura_com_historico(estado_inicial):
     print(f"Tempo de execução: {tempoTotal:.6f} segundos")
     return None, historico
 
+def busca_profundidade_com_historico(estado_inicial):
+    tempo_inicial = time.time()
+    pilha = [[estado_inicial]]
+    visitados = set()
+    
+    # Estrutura para armazenar o histórico da busca
+    historico = []
+    contador_estados = 0
+    estado_inicial.id = contador_estados
+    
+    # Registra o estado inicial
+    historico.append({
+        'tipo': 'inicial',
+        'estado': estado_inicial,
+        'id': contador_estados
+    })
+    
+    while pilha:
+        caminho = pilha.pop()
+        estado_atual = caminho[-1]
+        
+        # Registra o estado sendo explorado
+        historico.append({
+            'tipo': 'explorando',
+            'estado': estado_atual,
+            'id': estado_atual.id
+        })
+
+        estado_tuple = (tuple(sorted(estado_atual.lado_esquerdo)),
+                       tuple(sorted(estado_atual.lado_direito)), 
+                       estado_atual.lanterna)
+        
+        if estado_tuple in visitados:
+            # Registra estado rejeitado (já visitado)
+            historico.append({
+                'tipo': 'rejeitado',
+                'estado': estado_atual,
+                'id': estado_atual.id,
+                'motivo': 'já visitado'
+            })
+            continue
+            
+        visitados.add(estado_tuple)
+
+        if todos_no_lado_direito(estado_atual) and estado_atual.tempo <= 17:
+            tempo_final = time.time()
+            tempoTotal = tempo_final - tempo_inicial
+            print("Solução encontrada (Busca em Profundidade):")
+            print(f"Tempo de execução: {tempoTotal:.6f} segundos")
+            
+            # Registra o caminho da solução
+            for i, estado in enumerate(caminho):
+                historico.append({
+                    'tipo': 'solucao',
+                    'estado': estado,
+                    'id': estado.id,
+                    'posicao_caminho': i
+                })
+                
+            return caminho, historico
+
+        for prox_estado in reversed(estado_atual.gerar_proximos_estados()):
+            contador_estados += 1
+            prox_estado.id = contador_estados
+            
+            # Registra novo estado gerado
+            historico.append({
+                'tipo': 'gerado',
+                'estado': prox_estado,
+                'id': prox_estado.id,
+                'pai': estado_atual.id
+            })
+            
+            if prox_estado.tempo > 17:
+                # Registra estado rejeitado (tempo excedido)
+                historico.append({
+                    'tipo': 'rejeitado',
+                    'estado': prox_estado,
+                    'id': prox_estado.id,
+                    'motivo': 'tempo excedido'
+                })
+                continue
+                
+            pilha.append(caminho + [prox_estado])
+
+    tempo_final = time.time()
+    tempoTotal = tempo_final - tempo_inicial
+    print("Nenhuma solução encontrada!")
+    print(f"Tempo de execução: {tempoTotal:.6f} segundos")
+    return None, historico
+
+def busca_gulosa_com_historico(estado_inicial):
+    tempo_inicial = time.time()
+    fila = [(heuristica(estado_inicial), [estado_inicial])]
+    visitados = set()
+    
+    # Estrutura para armazenar o histórico da busca
+    historico = []
+    contador_estados = 0
+    estado_inicial.id = contador_estados
+    
+    # Registra o estado inicial
+    historico.append({
+        'tipo': 'inicial',
+        'estado': estado_inicial,
+        'id': contador_estados
+    })
+    
+    while fila:
+        h, caminho = heapq.heappop(fila)
+        estado_atual = caminho[-1]
+        
+        # Registra o estado sendo explorado
+        historico.append({
+            'tipo': 'explorando',
+            'estado': estado_atual,
+            'id': estado_atual.id
+        })
+
+        estado_tuple = (tuple(sorted(estado_atual.lado_esquerdo)),
+                       tuple(sorted(estado_atual.lado_direito)), 
+                       estado_atual.lanterna)
+        
+        if estado_tuple in visitados:
+            # Registra estado rejeitado (já visitado)
+            historico.append({
+                'tipo': 'rejeitado',
+                'estado': estado_atual,
+                'id': estado_atual.id,
+                'motivo': 'já visitado'
+            })
+            continue
+            
+        visitados.add(estado_tuple)
+
+        if todos_no_lado_direito(estado_atual) and estado_atual.tempo <= 17:
+            tempo_final = time.time()
+            tempoTotal = tempo_final - tempo_inicial
+            print("Solução encontrada (Busca Gulosa):")
+            print(f"Tempo de execução: {tempoTotal:.6f} segundos")
+            
+            # Registra o caminho da solução
+            for i, estado in enumerate(caminho):
+                historico.append({
+                    'tipo': 'solucao',
+                    'estado': estado,
+                    'id': estado.id,
+                    'posicao_caminho': i
+                })
+                
+            return caminho, historico
+
+        for prox_estado in estado_atual.gerar_proximos_estados():
+            contador_estados += 1
+            prox_estado.id = contador_estados
+            
+            # Registra novo estado gerado
+            historico.append({
+                'tipo': 'gerado',
+                'estado': prox_estado,
+                'id': prox_estado.id,
+                'pai': estado_atual.id
+            })
+            
+            if prox_estado.tempo > 17:
+                # Registra estado rejeitado (tempo excedido)
+                historico.append({
+                    'tipo': 'rejeitado',
+                    'estado': prox_estado,
+                    'id': prox_estado.id,
+                    'motivo': 'tempo excedido'
+                })
+                continue
+                
+            heapq.heappush(fila, (heuristica(prox_estado), caminho + [prox_estado]))
+
+    tempo_final = time.time()
+    tempoTotal = tempo_final - tempo_inicial
+    print("Nenhuma solução encontrada!")
+    print(f"Tempo de execução: {tempoTotal:.6f} segundos")
+    return None, historico
+
+def busca_aestrela_com_historico(estado_inicial):
+    tempo_inicial = time.time()
+    fila = [(custo_real(estado_inicial) + heuristicaAestrela(estado_inicial), [estado_inicial])]
+    visitados = set()
+    
+    # Estrutura para armazenar o histórico da busca
+    historico = []
+    contador_estados = 0
+    estado_inicial.id = contador_estados
+    
+    # Registra o estado inicial
+    historico.append({
+        'tipo': 'inicial',
+        'estado': estado_inicial,
+        'id': contador_estados
+    })
+    
+    while fila:
+        f, caminho = heapq.heappop(fila)
+        estado_atual = caminho[-1]
+        
+        # Registra o estado sendo explorado
+        historico.append({
+            'tipo': 'explorando',
+            'estado': estado_atual,
+            'id': estado_atual.id
+        })
+
+        estado_tuple = (tuple(sorted(estado_atual.lado_esquerdo)),
+                       tuple(sorted(estado_atual.lado_direito)), 
+                       estado_atual.lanterna)
+        
+        if estado_tuple in visitados:
+            # Registra estado rejeitado (já visitado)
+            historico.append({
+                'tipo': 'rejeitado',
+                'estado': estado_atual,
+                'id': estado_atual.id,
+                'motivo': 'já visitado'
+            })
+            continue
+            
+        visitados.add(estado_tuple)
+
+        if todos_no_lado_direito(estado_atual) and estado_atual.tempo <= 17:
+            tempo_final = time.time()
+            tempoTotal = tempo_final - tempo_inicial
+            print("Solução encontrada (Busca A*):")
+            print(f"Tempo de execução: {tempoTotal:.6f} segundos")
+            
+            # Registra o caminho da solução
+            for i, estado in enumerate(caminho):
+                historico.append({
+                    'tipo': 'solucao',
+                    'estado': estado,
+                    'id': estado.id,
+                    'posicao_caminho': i
+                })
+                
+            return caminho, historico
+
+        for prox_estado in estado_atual.gerar_proximos_estados():
+            contador_estados += 1
+            prox_estado.id = contador_estados
+            
+            # Registra novo estado gerado
+            historico.append({
+                'tipo': 'gerado',
+                'estado': prox_estado,
+                'id': prox_estado.id,
+                'pai': estado_atual.id
+            })
+            
+            if prox_estado.tempo > 17:
+                # Registra estado rejeitado (tempo excedido)
+                historico.append({
+                    'tipo': 'rejeitado',
+                    'estado': prox_estado,
+                    'id': prox_estado.id,
+                    'motivo': 'tempo excedido'
+                })
+                continue
+                
+            heapq.heappush(fila, (custo_real(prox_estado) + heuristicaAestrela(prox_estado), caminho + [prox_estado]))
+
+    tempo_final = time.time()
+    tempoTotal = tempo_final - tempo_inicial
+    print("Nenhuma solução encontrada!")
+    print(f"Tempo de execução: {tempoTotal:.6f} segundos")
+    return None, historico
+
+def busca_backtracking_com_historico(estado_atual, caminho, visitados, historico, tempo_inicial=None):
+    if tempo_inicial is None:
+        tempo_inicial = time.time()
+
+    # Registra o estado sendo explorado
+    historico.append({
+        'tipo': 'explorando',
+        'estado': estado_atual,
+        'id': estado_atual.id
+    })
+
+    # Verifica se o tempo excedeu o limite
+    if estado_atual.tempo > 17:
+        tempo_final = time.time()
+        tempoTotal = tempo_final - tempo_inicial
+        print("Tempo excedido (Backtracking):")
+        print(f"Tempo de execução: {tempoTotal:.6f} segundos")
+        
+        # Registra estado rejeitado (tempo excedido)
+        historico.append({
+            'tipo': 'rejeitado',
+            'estado': estado_atual,
+            'id': estado_atual.id,
+            'motivo': 'tempo excedido'
+        })
+        return None
+
+    # Cria uma representação única do estado para verificar se já foi visitado
+    estado_tuple = (tuple(sorted(estado_atual.lado_esquerdo)),
+                    tuple(sorted(estado_atual.lado_direito)),
+                    estado_atual.lanterna)
+
+    if estado_tuple in visitados:
+        # Registra estado rejeitado (já visitado)
+        historico.append({
+            'tipo': 'rejeitado',
+            'estado': estado_atual,
+            'id': estado_atual.id,
+            'motivo': 'já visitado'
+        })
+        return None
+
+    visitados.add(estado_tuple)
+
+    # Verifica se chegou ao objetivo
+    if todos_no_lado_direito(estado_atual):
+        tempo_final = time.time()
+        tempoTotal = tempo_final - tempo_inicial
+        print("Solução encontrada (Backtracking):")
+        print(f"Tempo de execução: {tempoTotal:.6f} segundos")
+        
+        # Registra o caminho da solução
+        for i, estado in enumerate(caminho):
+            historico.append({
+                'tipo': 'solucao',
+                'estado': estado,
+                'id': estado.id,
+                'posicao_caminho': i
+            })
+        
+        return caminho
+
+    # Gera os próximos estados
+    for prox_estado in estado_atual.gerar_proximos_estados():
+        # Atribui um ID único ao próximo estado
+        prox_estado.id = len(historico)
+        
+        # Registra novo estado gerado
+        historico.append({
+            'tipo': 'gerado',
+            'estado': prox_estado,
+            'id': prox_estado.id,
+            'pai': estado_atual.id
+        })
+
+        # Chama recursivamente a busca
+        resultado = busca_backtracking_com_historico(
+            prox_estado, caminho + [prox_estado], visitados, historico, tempo_inicial
+        )
+        
+        if resultado:
+            return resultado
+
+    # Remove o estado atual dos visitados (backtracking)
+    visitados.remove(estado_tuple)
+    
+    # Registra estado rejeitado (backtracking)
+    historico.append({
+        'tipo': 'rejeitado',
+        'estado': estado_atual,
+        'id': estado_atual.id,
+        'motivo': 'backtracking'
+    })
+    
+    return None
+
 def animar_busca(historico):
     G = nx.DiGraph()
     fig, ax = plt.subplots(figsize=(18, 12))
@@ -855,41 +1224,58 @@ def executar_busca_largura_animada():
 # Para executar, basta chamar:
 # caminho, historico, animacao = executar_busca_largura_animada()
 
+def executar_busca_backtracking_animada():
+    estado_inicial = Estado(["Bono", "Edge", "Adam", "Larry"], [], "esquerda", 0)
+    estado_inicial.id = 0  # Atribui um ID único ao estado inicial
+    
+    # Estrutura para armazenar o histórico da busca
+    historico = []
+    
+    # Registra o estado inicial
+    historico.append({
+        'tipo': 'inicial',
+        'estado': estado_inicial,
+        'id': estado_inicial.id
+    })
+    
+    # Executa a busca em backtracking
+    caminho_solucao = busca_backtracking_com_historico(
+        estado_inicial, [estado_inicial], set(), historico
+    )
+    
+    if caminho_solucao:
+        print(f"Total de eventos registrados: {len(historico)}")
+        print("Iniciando animação...")
+        animar_busca(historico)
+        return caminho_solucao, historico
+    else:
+        print("Nenhuma solução encontrada para animar.")
+        return None, historico
+
 
 # Execução
 if __name__ == "__main__":
-    modo = input("Escolha o método de busca (largura (l), backtracking (b), profundidade (p), ordenada (o), gulosa (g), A* (a) ou largura animada (la)): ").strip().lower()
+    modo = input("Escolha o método de busca (largura (l), profundidade (p), gulosa (g), A* (a), backtracking (b)): ").strip().lower()
     
     estado_inicial = Estado(["Bono", "Edge", "Adam", "Larry"], [], "esquerda", 0)
     
-    if modo == "la":
-        # Chamada da busca em largura animada
-        caminho_solucao, historico, animacao = executar_busca_largura_animada()
-    elif modo == "l":
-        caminho_solucao = busca_largura(estado_inicial)
-    elif modo == "b":
-        tempo_inicial = time.time()
-        caminho_solucao = busca_backtracking(estado_inicial, [estado_inicial], [])
-        if not caminho_solucao:
-            tempo_final = time.time()
-            tempoTotal = tempo_final - tempo_inicial
-            print("Nenhuma solução encontrada (Backtracking)!")
-            print(f"Tempo de execução: {tempoTotal:.6f} segundos")
+    if modo == "l":
+        caminho_solucao, historico = busca_largura_com_historico(estado_inicial)
     elif modo == "p":
-        caminho_solucao = busca_profundidade(estado_inicial)
-    elif modo == "o":
-        caminho_solucao = busca_ordenada(estado_inicial)
+        caminho_solucao, historico = busca_profundidade_com_historico(estado_inicial)
     elif modo == "g":
-        caminho_solucao = busca_gulosa(estado_inicial)
+        caminho_solucao, historico = busca_gulosa_com_historico(estado_inicial)
     elif modo == "a":
-        caminho_solucao = busca_aestrela(estado_inicial)
+        caminho_solucao, historico = busca_aestrela_com_historico(estado_inicial)
+    elif modo == "b":
+        caminho_solucao, historico = executar_busca_backtracking_animada()
     else:
         print("Método inválido!")
-        caminho_solucao = None
+        caminho_solucao, historico = None, None
 
-    # Desenha o grafo se houver uma solução nas buscas não animadas
-    if caminho_solucao and modo != "la":
-        desenhar_grafo(caminho_solucao)
+    if caminho_solucao:
+        print("Iniciando animação...")
+        animar_busca(historico)
     
     print("Busca finalizada.")
 
