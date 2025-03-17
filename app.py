@@ -2,6 +2,7 @@ from collections import deque
 import heapq
 import time
 import graphviz
+from graphviz import Digraph
 
 # Tempos de travessia de cada membro da banda
 info = [
@@ -583,6 +584,110 @@ def visualizar_arvore_busca(caminho_solucao, todos_estados):
     return dot
 
 
+def gerar_imagem_explicacao(resultados, melhor_algoritmo):
+    """
+    Gera uma imagem com a explicação dos algoritmos e o resultado da comparação.
+    """
+    dot = Digraph(
+        format='png',
+        engine='dot',
+        graph_attr={'rankdir': 'TB', 'concentrate': 'true', 'overlap': 'false', 'splines': 'true'}
+    )
+    
+    # Título da imagem
+    dot.node("titulo", label="Comparação dos Algoritmos de Busca", shape="plaintext", fontsize="20", fontname="bold")
+    
+    # Explicação dos algoritmos
+    explicacao = (
+        "Explicação dos Algoritmos:\n"
+        "1. Busca em Largura (BFS): Explora todos os nós nível por nível. Não usa heurística.\n"
+        "2. Busca em Profundidade (DFS): Explora o máximo possível em cada ramo antes de retroceder. Não usa heurística.\n"
+        "3. Busca Gulosa: Escolhe o próximo nó com base em uma heurística (menor tempo estimado para a solução).\n"
+        "4. Busca A*: Combina o custo real do caminho com uma heurística (custo real + tempo estimado).\n"
+        "5. Busca Ordenada: Expande os nós com base no custo real acumulado. Não usa heurística.\n"
+        "6. Busca Backtracking: Explora recursivamente os caminhos, retrocedendo quando atinge um limite.\n"
+    )
+    dot.node("explicacao", label=explicacao, shape="plaintext", fontsize="12")
+    
+    # Resultados da comparação
+    resultados_label = "Resultados:\n"
+    for nome, dados in resultados.items():
+        resultados_label += (
+            f"{nome}:\n"
+            f"  Tempo de execução = {dados['tempo_execucao']:.6f} segundos\n"
+            f"  Estados explorados = {dados['num_estados']}\n"
+        )
+    resultados_label += f"\nMelhor algoritmo: {melhor_algoritmo}"
+    dot.node("resultados", label=resultados_label, shape="plaintext", fontsize="12")
+    
+    # Conectar os nós
+    dot.edge("titulo", "explicacao")
+    dot.edge("explicacao", "resultados")
+    
+    # Renderizar e salvar a imagem
+    dot.render("comparacao_algoritmos", view=True, cleanup=True)
+    print("Imagem com a explicação e resultados gerada com sucesso!")
+
+
+def testar_todos_os_algoritmos():
+    """
+    Testa todos os algoritmos de busca, explica as diferenças, heurísticas usadas,
+    compara os resultados e gera uma imagem com a explicação.
+    """
+    estado_inicial = Estado(["Bono", "Edge", "Adam", "Larry"], [], "esquerda", 0)
+    
+    # Dicionário para armazenar os resultados de cada algoritmo
+    resultados = {}
+    
+    # Funções de busca disponíveis
+    algoritmos = {
+        "Busca em Largura (BFS)": busca_largura_com_visualizacao,
+        "Busca em Profundidade (DFS)": busca_profundidade_com_visualizacao,
+        "Busca Gulosa": busca_gulosa_com_visualizacao,
+        "Busca A*": busca_aestrela_com_visualizacao,
+        "Busca Ordenada": busca_ordenada_com_visualizacao,
+        "Busca Backtracking": busca_backtracking_com_visualizacao
+    }
+    
+    # Testar cada algoritmo
+    for nome, algoritmo in algoritmos.items():
+        print(f"\nExecutando {nome}...")
+        tempo_inicial = time.time()
+        caminho_solucao, todos_estados = algoritmo(estado_inicial)
+        tempo_execucao = time.time() - tempo_inicial
+        
+        if caminho_solucao:
+            num_estados = len(todos_estados)
+            resultados[nome] = {
+                "tempo_execucao": tempo_execucao,
+                "num_estados": num_estados,
+                "caminho_solucao": caminho_solucao,
+                "todos_estados": todos_estados
+            }
+            print(f"{nome} encontrou uma solução em {tempo_execucao:.6f} segundos, explorando {num_estados} estados.")
+        else:
+            print(f"{nome} não encontrou uma solução.")
+    
+    # Determinar o melhor algoritmo (menos estados explorados e menor tempo de execução)
+    if resultados:
+        # Ordenar por número de estados e, em caso de empate, por tempo de execução
+        melhor_algoritmo = min(
+            resultados.keys(),
+            key=lambda x: (resultados[x]["num_estados"], resultados[x]["tempo_execucao"])
+        )
+        print(f"\n--- Melhor Algoritmo ---")
+        print(
+            f"O melhor algoritmo foi {melhor_algoritmo}, "
+            f"explorando {resultados[melhor_algoritmo]['num_estados']} estados "
+            f"em {resultados[melhor_algoritmo]['tempo_execucao']:.6f} segundos."
+        )
+        
+        # Gerar a imagem com a explicação e resultados
+        gerar_imagem_explicacao(resultados, melhor_algoritmo)
+    else:
+        print("Nenhum algoritmo encontrou uma solução.")
+
+
 # Função principal para executar a busca e visualização
 def executar_busca_e_visualizacao():
     while True:
@@ -595,10 +700,11 @@ def executar_busca_e_visualizacao():
         print("4. Busca A*")
         print("5. Busca Ordenada")
         print("6. Busca Backtracking")
-        print("7. Sair")
+        print("7. Testar todos os algoritmos")
+        print("8. Sair")
         opcao = input("Digite o número da opção desejada: ")
         
-        if opcao == "7":
+        if opcao == "8":
             print("Saindo...")
             break
         
@@ -617,6 +723,9 @@ def executar_busca_e_visualizacao():
             caminho_solucao, todos_estados = busca_ordenada_com_visualizacao(estado_inicial)
         elif opcao == "6":
             caminho_solucao, todos_estados = busca_backtracking_com_visualizacao(estado_inicial)
+        elif opcao == "7":
+            testar_todos_os_algoritmos()
+            continue  # Volta ao menu após testar todos os algoritmos
         else:
             print("Opção inválida! Tente novamente.")
             continue
