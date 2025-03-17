@@ -231,7 +231,7 @@ def busca_profundidade_com_visualizacao(estado_inicial):
 
 def busca_gulosa_com_visualizacao(estado_inicial):
     tempo_inicial = time.time()
-    fila = [(heuristica(estado_inicial), estado_inicial)]
+    fila = [(heuristica_gulosa(estado_inicial), estado_inicial)]
     visitados = {}
     todos_estados = set()
     solucao = None
@@ -290,7 +290,7 @@ def busca_gulosa_com_visualizacao(estado_inicial):
 
 def busca_aestrela_com_visualizacao(estado_inicial):
     tempo_inicial = time.time()
-    fila = [(custo_real(estado_inicial) + heuristicaAestrela(estado_inicial), estado_inicial)]
+    fila = [(custo_real(estado_inicial) + heuristica_aestrela(estado_inicial), estado_inicial)]
     visitados = {}
     todos_estados = set()
     solucao = None
@@ -503,6 +503,32 @@ def heuristica(estado):
         max_tempo += min_tempo_direito
     return max_tempo
 
+def heuristica_gulosa(estado):
+    # Tempo máximo de travessia dos membros no lado esquerdo
+    if not estado.lado_esquerdo:
+        return 0  # Todos já estão no lado direito
+    max_tempo = max(membro["tempo"] for membro in info if membro["nome"] in estado.lado_esquerdo)
+    return max_tempo
+
+def heuristica_aestrela(estado):
+    membros_esquerda = estado.lado_esquerdo.copy()
+    tempos = [membro["tempo"] for membro in info if membro["nome"] in membros_esquerda]
+    tempos.sort()  # Ordena os tempos para otimizar a travessia
+
+    tempo_total = 0
+    while len(tempos) > 1:
+        # Dois membros mais rápidos atravessam
+        tempo_total += max(tempos[0], tempos[1])
+        # Membro mais rápido retorna
+        tempo_total += tempos[0]
+        # Remove os dois membros que já atravessaram
+        tempos = tempos[2:]
+    
+    # Se sobrou um membro, ele atravessa sozinho
+    if len(tempos) == 1:
+        tempo_total += tempos[0]
+    
+    return tempo_total
 
 def visualizar_arvore_busca(caminho_solucao, todos_estados):
     """
