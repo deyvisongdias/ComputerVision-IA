@@ -420,60 +420,6 @@ def heuristica(estado):
         max_tempo += min_tempo_direito
     return max_tempo
 
-
-def visualizar_arvore_busca(caminho_solucao, todos_estados):
-    """
-    Cria uma visualização da árvore de busca usando Graphviz, com o caminho solução destacado em vermelho.
-    """
-    dot = graphviz.Digraph(
-        format='png',
-        engine='dot',
-        graph_attr={'rankdir': 'TB', 'concentrate': 'true', 'overlap': 'false', 'splines': 'true'}
-    )
-    
-    # Dicionário para armazenar os estados por nível
-    estados_por_nivel = {}
-    
-    # Primeiro, atribuir níveis aos estados
-    for estado in todos_estados:
-        nivel = 0
-        atual = estado
-        while atual.pai:
-            nivel += 1
-            atual = atual.pai
-        
-        if nivel not in estados_por_nivel:
-            estados_por_nivel[nivel] = []
-        estados_por_nivel[nivel].append(estado)
-    
-    # Adicionar todos os nós agrupados por nível para melhor visualização
-    for nivel, estados in estados_por_nivel.items():
-        with dot.subgraph(name=f"cluster_{nivel}") as c:
-            c.attr(label=f"Nível {nivel}", color="lightgrey")
-            for estado in estados:
-                label = f"ID: {estado.id}\nTempo: {estado.tempo}\nEsq: {', '.join(estado.lado_esquerdo)}\nDir: {', '.join(estado.lado_direito)}"
-                
-                # Definir cor e estilo do nó
-                if estado in caminho_solucao:
-                    c.node(str(estado.id), label=label, shape="box", style="filled", fillcolor="lightgreen")
-                else:
-                    c.node(str(estado.id), label=label, shape="box", style="filled", fillcolor="lightblue" if estado.lanterna == "direita" else "lightyellow")
-    
-    # Adicionar as arestas
-    for estado in todos_estados:
-        if estado.pai:
-            # Verificar se a aresta pertence ao caminho solução
-            if estado in caminho_solucao and estado.pai in caminho_solucao:
-                dot.edge(str(estado.pai.id), str(estado.id), color="red", penwidth="2.0")
-            else:
-                dot.edge(str(estado.pai.id), str(estado.id), color="gray")
-    
-    # Render e salvar o gráfico
-    dot.render('arvore_busca', view=True)
-    print("Visualização da árvore de busca gerada com sucesso!")
-    return dot
-
-
 def busca_ordenada_com_visualizacao(estado_inicial):
     tempo_inicial = time.time()
     fila = [(custo_real(estado_inicial), estado_inicial)]
@@ -599,62 +545,103 @@ def busca_backtracking_com_visualizacao(estado_inicial):
     return caminho_solucao, todos_estados
 
 
-# Limita o número de estados para visualização
-def limitar_estados_para_visualizacao(todos_estados, limite=500):
+def visualizar_arvore_busca(caminho_solucao, todos_estados):
     """
-    Limita o número de estados para visualização para evitar gráficos muito grandes.
-    Mantém os estados de menor ID (provavelmente explorando mais próximo da raiz).
+    Cria uma visualização da árvore de busca usando Graphviz, com o caminho solução destacado em vermelho.
     """
-    if len(todos_estados) <= limite:
-        return todos_estados
+    dot = graphviz.Digraph(
+        format='png',
+        engine='dot',
+        graph_attr={'rankdir': 'TB', 'concentrate': 'true', 'overlap': 'false', 'splines': 'true'}
+    )
     
-    return sorted(todos_estados, key=lambda x: x.id)[:limite]
+    # Dicionário para armazenar os estados por nível
+    estados_por_nivel = {}
+    
+    # Primeiro, atribuir níveis aos estados
+    for estado in todos_estados:
+        nivel = 0
+        atual = estado
+        while atual.pai:
+            nivel += 1
+            atual = atual.pai
+        
+        if nivel not in estados_por_nivel:
+            estados_por_nivel[nivel] = []
+        estados_por_nivel[nivel].append(estado)
+    
+    # Adicionar todos os nós agrupados por nível para melhor visualização
+    for nivel, estados in estados_por_nivel.items():
+        with dot.subgraph(name=f"cluster_{nivel}") as c:
+            c.attr(label=f"Nível {nivel}", color="lightgrey")
+            for estado in estados:
+                label = f"ID: {estado.id}\nTempo: {estado.tempo}\nEsq: {', '.join(estado.lado_esquerdo)}\nDir: {', '.join(estado.lado_direito)}"
+                
+                # Definir cor e estilo do nó
+                if estado in caminho_solucao:
+                    c.node(str(estado.id), label=label, shape="box", style="filled", fillcolor="lightgreen")
+                else:
+                    c.node(str(estado.id), label=label, shape="box", style="filled", fillcolor="lightblue" if estado.lanterna == "direita" else "lightyellow")
+    
+    # Adicionar as arestas
+    for estado in todos_estados:
+        if estado.pai:
+            # Verificar se a aresta pertence ao caminho solução
+            if estado in caminho_solucao and estado.pai in caminho_solucao:
+                dot.edge(str(estado.pai.id), str(estado.id), color="red", penwidth="2.0")
+            else:
+                dot.edge(str(estado.pai.id), str(estado.id), color="gray")
+    
+    # Render e salvar o gráfico
+    # dot.render('arvore_busca', view=True)
+    dot.render(view=True, cleanup=True)
+    print("Visualização da árvore de busca gerada com sucesso!")
+    return dot
 
 
 # Função principal para executar a busca e visualização
 def executar_busca_e_visualizacao():
-    estado_inicial = Estado(["Bono", "Edge", "Adam", "Larry"], [], "esquerda", 0)
-    
-    print("Escolha o método de busca:")
-    print("1. Busca em Largura (BFS)")
-    print("2. Busca em Profundidade (DFS)")
-    print("3. Busca Gulosa")
-    print("4. Busca A*")
-    print("5. Busca Ordenada")
-    print("6. Busca Backtracking")
-    opcao = input("Digite o número da opção desejada: ")
-    
-    caminho_solucao = None
-    todos_estados = None
-    
-    if opcao == "1":
-        caminho_solucao, todos_estados = busca_largura_com_visualizacao(estado_inicial)
-    elif opcao == "2":
-        caminho_solucao, todos_estados = busca_profundidade_com_visualizacao(estado_inicial)
-    elif opcao == "3":
-        caminho_solucao, todos_estados = busca_gulosa_com_visualizacao(estado_inicial)
-    elif opcao == "4":
-        caminho_solucao, todos_estados = busca_aestrela_com_visualizacao(estado_inicial)
-    elif opcao == "5":
-        caminho_solucao, todos_estados = busca_ordenada_com_visualizacao(estado_inicial)
-    elif opcao == "6":
-        caminho_solucao, todos_estados = busca_backtracking_com_visualizacao(estado_inicial)
-    else:
-        print("Opção inválida!")
-        return
-    
-    if todos_estados:
-        print(f"Total de estados explorados: {len(todos_estados)}")
-        # Limitar estados para visualização se forem muitos
-        limite_estados = 500
-        if len(todos_estados) > limite_estados:
-            print(f"Limitando a visualização para {limite_estados} estados mais próximos da raiz.")
-            estados_visualizacao = limitar_estados_para_visualizacao(todos_estados, limite_estados)
-        else:
-            estados_visualizacao = todos_estados
+    while True:
+        estado_inicial = Estado(["Bono", "Edge", "Adam", "Larry"], [], "esquerda", 0)
         
-        # Visualizar a árvore de busca
-        visualizar_arvore_busca(caminho_solucao, estados_visualizacao)
+        print("\nEscolha o método de busca:")
+        print("1. Busca em Largura (BFS)")
+        print("2. Busca em Profundidade (DFS)")
+        print("3. Busca Gulosa")
+        print("4. Busca A*")
+        print("5. Busca Ordenada")
+        print("6. Busca Backtracking")
+        print("7. Sair")
+        opcao = input("Digite o número da opção desejada: ")
+        
+        if opcao == "7":
+            print("Saindo...")
+            break
+        
+        caminho_solucao = None
+        todos_estados = None
+        
+        if opcao == "1":
+            caminho_solucao, todos_estados = busca_largura_com_visualizacao(estado_inicial)
+        elif opcao == "2":
+            caminho_solucao, todos_estados = busca_profundidade_com_visualizacao(estado_inicial)
+        elif opcao == "3":
+            caminho_solucao, todos_estados = busca_gulosa_com_visualizacao(estado_inicial)
+        elif opcao == "4":
+            caminho_solucao, todos_estados = busca_aestrela_com_visualizacao(estado_inicial)
+        elif opcao == "5":
+            caminho_solucao, todos_estados = busca_ordenada_com_visualizacao(estado_inicial)
+        elif opcao == "6":
+            caminho_solucao, todos_estados = busca_backtracking_com_visualizacao(estado_inicial)
+        else:
+            print("Opção inválida! Tente novamente.")
+            continue
+        
+        if todos_estados:
+            print(f"Total de estados explorados: {len(todos_estados)}")
+            
+            # Visualizar a árvore de busca com todos os estados
+            visualizar_arvore_busca(caminho_solucao, todos_estados)
 
 
 # Executar o programa
