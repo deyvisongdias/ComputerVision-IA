@@ -1,7 +1,4 @@
 from collections import deque
-import networkx as nx
-import matplotlib.pyplot as plt
-import matplotlib.animation as animation
 import heapq
 import time
 import graphviz
@@ -33,13 +30,13 @@ transicoes_direita = [
 
 class Estado:
     def __init__(self, lado_esquerdo, lado_direito, lanterna, tempo, movimento=None, pai=None):
-        self.lado_esquerdo = lado_esquerdo  # Usar tuple para imutabilidade
-        self.lado_direito = lado_direito  # Usar tuple para imutabilidade
-        self.lanterna = lanterna
-        self.tempo = tempo
+        self.lado_esquerdo = lado_esquerdo  # Lista de membros no lado esquerdo
+        self.lado_direito = lado_direito  # Lista de membros no lado direito
+        self.lanterna = lanterna  # Posição da lanterna ("esquerda" ou "direita")
+        self.tempo = tempo  # Tempo acumulado
         self.movimento = movimento  # Guarda quem atravessou
         self.pai = pai  # Guarda referência ao estado pai
-        self.id = None  # Será usado para identificar o estado no grafo
+        self.id = None  # Identificador único para o estado
 
     def __lt__(self, outro):
         return self.tempo < outro.tempo  # Para comparação na busca
@@ -47,7 +44,7 @@ class Estado:
     def __repr__(self):
         movimento_str = ""
         if self.movimento:
-            if (self.lanterna == "esquerda"):
+            if self.lanterna == "esquerda":
                 movimento_str = f" <- {' e '.join(self.movimento)} voltou"
             else:
                 movimento_str = f" -> {' e '.join(self.movimento)} foram"
@@ -66,87 +63,46 @@ class Estado:
 
     def gerar_proximos_estados(self):
         proximos_estados = []
-        lado_atual = []
-        transicoes = []
-
-        if (self.lanterna == "esquerda"):
+        if self.lanterna == "esquerda":
             for transicao in transicoes_esquerda:
-                lado_atual = self.lado_esquerdo.copy()
-
-                for membro in lado_atual:
-                    if (membro in transicao):
-                        lado_atual.remove(membro)
-                        for outro_membro in lado_atual:
-                            if (outro_membro in transicao):
-                                if (transicao not in transicoes):
-                                    transicoes.append(transicao)
-
-            for transicao in transicoes:
-                novo_lado_esquerdo = self.lado_esquerdo.copy()
-                novo_lado_esquerdo.remove(transicao[0])
-                novo_lado_esquerdo.remove(transicao[1])
-
-                novo_lado_direito = self.lado_direito.copy()
-                novo_lado_direito.append(transicao[0])
-                novo_lado_direito.append(transicao[1])
-
-                lanterna = "direita"
-
-                tempo = self.tempo
-                tempo_gasto = 0
-
-                movimento = []
-
-                for membro in info:
-                    if (membro.get("nome") == transicao[0] or membro.get("nome") == transicao[1]):
-                        tempo_gasto = max(tempo_gasto, membro.get("tempo"))
-                        movimento.append(membro.get("nome"))
-
-                tempo = tempo + tempo_gasto
-
-                novo_estado = Estado(
-                    novo_lado_esquerdo, novo_lado_direito, lanterna, tempo, movimento, self)
-
-                proximos_estados.append(novo_estado)
-
-        if (self.lanterna == "direita"):
-            lado_atual = self.lado_direito.copy()
-
+                if all(membro in self.lado_esquerdo for membro in transicao):
+                    novo_lado_esquerdo = [m for m in self.lado_esquerdo if m not in transicao]
+                    novo_lado_direito = self.lado_direito + list(transicao)
+                    
+                    # Calcular o tempo gasto para a travessia
+                    tempo_gasto = 0
+                    for membro in transicao:
+                        for item in info:
+                            if item["nome"] == membro:
+                                tempo_gasto = max(tempo_gasto, item["tempo"])
+                                break
+                    
+                    novo_estado = Estado(
+                        novo_lado_esquerdo, novo_lado_direito, "direita", self.tempo + tempo_gasto, transicao, self
+                    )
+                    proximos_estados.append(novo_estado)
+        else:
             for transicao in transicoes_direita:
-                for membro in lado_atual:
-                    if (membro in transicao):
-                        transicoes.append(transicao)
-
-            for transicao in transicoes:
-                novo_lado_esquerdo = self.lado_esquerdo.copy()
-                novo_lado_esquerdo.append(transicao[0])
-
-                novo_lado_direito = self.lado_direito.copy()
-                novo_lado_direito.remove(transicao[0])
-
-                lanterna = "esquerda"
-
-                tempo = self.tempo
-
-                movimento = []
-
-                for membro in info:
-                    if (membro.get("nome") == transicao[0]):
-                        tempo = tempo + membro.get("tempo")
-                        movimento.append(membro.get("nome"))
-
-                novo_estado = Estado(
-                    novo_lado_esquerdo, novo_lado_direito, lanterna, tempo, movimento, self)
-
-                proximos_estados.append(novo_estado)
-
+                if transicao[0] in self.lado_direito:
+                    novo_lado_esquerdo = self.lado_esquerdo + [transicao[0]]
+                    novo_lado_direito = [m for m in self.lado_direito if m != transicao[0]]
+                    
+                    # Calcular o tempo gasto para o retorno
+                    tempo_gasto = 0
+                    for item in info:
+                        if item["nome"] == transicao[0]:
+                            tempo_gasto = item["tempo"]
+                            break
+                    
+                    novo_estado = Estado(
+                        novo_lado_esquerdo, novo_lado_direito, "esquerda", self.tempo + tempo_gasto, transicao, self
+                    )
+                    proximos_estados.append(novo_estado)
         return proximos_estados
 
 
 def todos_no_lado_direito(estado):
-    if len(estado.lado_esquerdo) == 0:
-        return True
-    return False
+    return len(estado.lado_esquerdo) == 0
 
 
 def imprimir_caminho(caminho):
@@ -154,13 +110,12 @@ def imprimir_caminho(caminho):
         print(estado)
 
 
-# Funções de busca modificadas para registrar todos os nós visitados
 def busca_largura_com_visualizacao(estado_inicial):
     tempo_inicial = time.time()
     fila = deque([estado_inicial])
-    visitados = {}  # Dicionário para manter o mapeamento estado -> pai
-    todos_estados = set()  # Conjunto para armazenar todos os estados visitados
-    solucao = None  # Para armazenar o estado final da solução
+    visitados = {}
+    todos_estados = set()
+    solucao = None
 
     contador_id = 0
     estado_inicial.id = contador_id
@@ -184,7 +139,10 @@ def busca_largura_com_visualizacao(estado_inicial):
             solucao = estado_atual
             break
 
+        # for prox_estado in estado_atual.gerar_proximos_estados(): -> caso não queira restringir
         for prox_estado in estado_atual.gerar_proximos_estados():
+            if prox_estado.tempo > 17:
+                continue
             prox_estado.pai = estado_atual
             prox_estado.id = contador_id
             contador_id += 1
@@ -215,9 +173,9 @@ def busca_largura_com_visualizacao(estado_inicial):
 def busca_profundidade_com_visualizacao(estado_inicial):
     tempo_inicial = time.time()
     pilha = [estado_inicial]
-    visitados = {}  # Dicionário para manter o mapeamento estado -> pai
-    todos_estados = set()  # Conjunto para armazenar todos os estados visitados
-    solucao = None  # Para armazenar o estado final da solução
+    visitados = {}
+    todos_estados = set()
+    solucao = None
 
     contador_id = 0
     estado_inicial.id = contador_id
@@ -242,6 +200,8 @@ def busca_profundidade_com_visualizacao(estado_inicial):
             break
 
         for prox_estado in reversed(estado_atual.gerar_proximos_estados()):
+            if prox_estado.tempo > 17:
+                continue
             prox_estado.pai = estado_atual
             prox_estado.id = contador_id
             contador_id += 1
@@ -272,9 +232,9 @@ def busca_profundidade_com_visualizacao(estado_inicial):
 def busca_gulosa_com_visualizacao(estado_inicial):
     tempo_inicial = time.time()
     fila = [(heuristica(estado_inicial), estado_inicial)]
-    visitados = {}  # Dicionário para manter o mapeamento estado -> pai
-    todos_estados = set()  # Conjunto para armazenar todos os estados visitados
-    solucao = None  # Para armazenar o estado final da solução
+    visitados = {}
+    todos_estados = set()
+    solucao = None
 
     contador_id = 0
     estado_inicial.id = contador_id
@@ -301,14 +261,11 @@ def busca_gulosa_com_visualizacao(estado_inicial):
         for prox_estado in estado_atual.gerar_proximos_estados():
             if prox_estado.tempo > 17:
                 continue
-                
             prox_estado.pai = estado_atual
             prox_estado.id = contador_id
             contador_id += 1
             todos_estados.add(prox_estado)
-            
-            h = heuristica(prox_estado)
-            heapq.heappush(fila, (h, prox_estado))
+            heapq.heappush(fila, (heuristica(prox_estado), prox_estado))
 
     if solucao is None:
         tempo_final = time.time()
@@ -334,9 +291,9 @@ def busca_gulosa_com_visualizacao(estado_inicial):
 def busca_aestrela_com_visualizacao(estado_inicial):
     tempo_inicial = time.time()
     fila = [(custo_real(estado_inicial) + heuristicaAestrela(estado_inicial), estado_inicial)]
-    visitados = {}  # Dicionário para manter o mapeamento estado -> pai
-    todos_estados = set()  # Conjunto para armazenar todos os estados visitados
-    solucao = None  # Para armazenar o estado final da solução
+    visitados = {}
+    todos_estados = set()
+    solucao = None
 
     contador_id = 0
     estado_inicial.id = contador_id
@@ -361,13 +318,13 @@ def busca_aestrela_com_visualizacao(estado_inicial):
             break
 
         for prox_estado in estado_atual.gerar_proximos_estados():
+            if prox_estado.tempo > 17:
+                continue
             prox_estado.pai = estado_atual
             prox_estado.id = contador_id
             contador_id += 1
             todos_estados.add(prox_estado)
-            
-            f = custo_real(prox_estado) + heuristicaAestrela(prox_estado)
-            heapq.heappush(fila, (f, prox_estado))
+            heapq.heappush(fila, (custo_real(prox_estado) + heuristicaAestrela(prox_estado), prox_estado))
 
     if solucao is None:
         tempo_final = time.time()
@@ -390,42 +347,12 @@ def busca_aestrela_com_visualizacao(estado_inicial):
     return caminho_solucao, todos_estados
 
 
-def custo_real(estado):
-    return estado.tempo
-
-
-def heuristicaAestrela(estado):
-    soma = 0
-    for nome in estado.lado_esquerdo:
-        # Encontra o tempo de travessia de cada membro ainda no lado esquerdo
-        for membro in info:
-            if membro["nome"] == nome:
-                soma += membro["tempo"]
-                break
-    return soma
-
-
-def heuristica(estado):
-    # Heurística: tempo máximo de travessia dos membros no lado esquerdo + tempo de retorno da lanterna
-    max_tempo = 0
-    for nome in estado.lado_esquerdo:
-        for membro in info:
-            if membro["nome"] == nome:
-                max_tempo = max(max_tempo, membro["tempo"])
-                break
-    # Adiciona o tempo de retorno da lanterna (membro mais rápido no lado direito)
-    if estado.lado_direito:
-        min_tempo_direito = min(
-            [membro["tempo"] for membro in info if membro["nome"] in estado.lado_direito])
-        max_tempo += min_tempo_direito
-    return max_tempo
-
 def busca_ordenada_com_visualizacao(estado_inicial):
     tempo_inicial = time.time()
     fila = [(custo_real(estado_inicial), estado_inicial)]
-    visitados = {}  # Dicionário para manter o mapeamento estado -> pai
-    todos_estados = set()  # Conjunto para armazenar todos os estados visitados
-    solucao = None  # Para armazenar o estado final da solução
+    visitados = {}
+    todos_estados = set()
+    solucao = None
 
     contador_id = 0
     estado_inicial.id = contador_id
@@ -450,11 +377,12 @@ def busca_ordenada_com_visualizacao(estado_inicial):
             break
 
         for prox_estado in estado_atual.gerar_proximos_estados():
+            if prox_estado.tempo > 17:
+                continue
             prox_estado.pai = estado_atual
             prox_estado.id = contador_id
             contador_id += 1
             todos_estados.add(prox_estado)
-            
             heapq.heappush(fila, (custo_real(prox_estado), prox_estado))
 
     if solucao is None:
@@ -545,6 +473,37 @@ def busca_backtracking_com_visualizacao(estado_inicial):
     return caminho_solucao, todos_estados
 
 
+def custo_real(estado):
+    return estado.tempo
+
+
+def heuristicaAestrela(estado):
+    soma = 0
+    for nome in estado.lado_esquerdo:
+        # Encontra o tempo de travessia de cada membro ainda no lado esquerdo
+        for membro in info:
+            if membro["nome"] == nome:
+                soma += membro["tempo"]
+                break
+    return soma
+
+
+def heuristica(estado):
+    # Heurística: tempo máximo de travessia dos membros no lado esquerdo + tempo de retorno da lanterna
+    max_tempo = 0
+    for nome in estado.lado_esquerdo:
+        for membro in info:
+            if membro["nome"] == nome:
+                max_tempo = max(max_tempo, membro["tempo"])
+                break
+    # Adiciona o tempo de retorno da lanterna (membro mais rápido no lado direito)
+    if estado.lado_direito:
+        min_tempo_direito = min(
+            [membro["tempo"] for membro in info if membro["nome"] in estado.lado_direito])
+        max_tempo += min_tempo_direito
+    return max_tempo
+
+
 def visualizar_arvore_busca(caminho_solucao, todos_estados):
     """
     Cria uma visualização da árvore de busca usando Graphviz, com o caminho solução destacado em vermelho.
@@ -593,7 +552,6 @@ def visualizar_arvore_busca(caminho_solucao, todos_estados):
                 dot.edge(str(estado.pai.id), str(estado.id), color="gray")
     
     # Render e salvar o gráfico
-    # dot.render('arvore_busca', view=True)
     dot.render(view=True, cleanup=True)
     print("Visualização da árvore de busca gerada com sucesso!")
     return dot
