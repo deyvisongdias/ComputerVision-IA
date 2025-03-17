@@ -1,26 +1,17 @@
 # Este repositorio e para codificação do trabalho pratico de inteligencia artificial
 
-# Guia de Instalação e Execução no Linux
 
-Este projeto utiliza Python e requer algumas dependências para ser executado corretamente no Linux. Siga as etapas abaixo para configurar o ambiente e rodar o código corretamente.
 
-## Requisitos
-- **Python 3** instalado no sistema. Para verificar a instalação, execute:
-  ```sh
-  python3 --version
-  ```
-  Se não estiver instalado, você pode instalá-lo com:
-  ```sh
-  sudo apt update
-  sudo apt install python3 python3-venv python3-pip
-  ```
+## Guia de Instalação e Execução no Linux
 
-- **Tkinter**: Este projeto utiliza a biblioteca Tkinter para interfaces gráficas. Instale-a com:
-  ```sh
-  sudo apt install python3-tk
-  ```
+### Requisitos
+- **Python 3**: É necessário ter o Python 3 instalado no sistema.
 
-## Configuração do Ambiente Virtual
+- **Graphviz**: O projeto utiliza a biblioteca Graphviz para gerar visualizações da árvore de busca. Para instalar o Graphviz, siga as instruções no [documento oficial](https://pygraphviz.github.io/documentation/stable/install.html).
+
+---
+
+### Configuração do Ambiente Virtual
 Recomenda-se o uso de um ambiente virtual para gerenciar as dependências do projeto. Siga os passos abaixo:
 
 1. **Criar o ambiente virtual:**
@@ -35,30 +26,25 @@ Recomenda-se o uso de um ambiente virtual para gerenciar as dependências do pro
 
 3. **Instalar as dependências:**
    ```sh
-   pip install networkx matplotlib
+   pip install networkx matplotlib graphviz
    ```
 
 4. **Verificar as bibliotecas instaladas:**
    ```sh
    pip list
    ```
+---
 
-5. **Desativar o ambiente virtual (opcional):**
-   ```sh
-   deactivate
-   ```
-
-## Executando o Programa no Linux
+### Executando o Programa no Linux
 Para rodar o código, ative o ambiente virtual e execute o arquivo principal:
 ```sh
 source venv/bin/activate
 python3 app.py
 ```
+
 Se desejar sair do ambiente virtual após a execução, utilize:
 ```sh
 deactivate
 ```
 
-## Observação
-Se encontrar problemas de permissão ao executar os comandos, tente adicionar `sudo` antes do comando ou verificar se o Python e os pacotes estão corretamente configurados.
 
