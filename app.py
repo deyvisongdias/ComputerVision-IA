@@ -265,7 +265,7 @@ def busca_gulosa_com_visualizacao(estado_inicial):
             prox_estado.id = contador_id
             contador_id += 1
             todos_estados.add(prox_estado)
-            heapq.heappush(fila, (heuristica(prox_estado), prox_estado))
+            heapq.heappush(fila, (heuristica_gulosa(prox_estado), prox_estado))
 
     if solucao is None:
         tempo_final = time.time()
@@ -324,7 +324,7 @@ def busca_aestrela_com_visualizacao(estado_inicial):
             prox_estado.id = contador_id
             contador_id += 1
             todos_estados.add(prox_estado)
-            heapq.heappush(fila, (custo_real(prox_estado) + heuristicaAestrela(prox_estado), prox_estado))
+            heapq.heappush(fila, (custo_real(prox_estado) + heuristica_aestrela(prox_estado), prox_estado))
 
     if solucao is None:
         tempo_final = time.time()
@@ -533,6 +533,7 @@ def heuristica_aestrela(estado):
 def visualizar_arvore_busca(caminho_solucao, todos_estados):
     """
     Cria uma visualização da árvore de busca usando Graphviz, com o caminho solução destacado em vermelho.
+    A legenda é posicionada no canto inferior direito, com o texto colorido de acordo com o que representa.
     """
     dot = graphviz.Digraph(
         format='png',
@@ -540,33 +541,15 @@ def visualizar_arvore_busca(caminho_solucao, todos_estados):
         graph_attr={'rankdir': 'TB', 'concentrate': 'true', 'overlap': 'false', 'splines': 'true'}
     )
     
-    # Dicionário para armazenar os estados por nível
-    estados_por_nivel = {}
-    
-    # Primeiro, atribuir níveis aos estados
+    # Adicionar todos os nós sem agrupamento por nível
     for estado in todos_estados:
-        nivel = 0
-        atual = estado
-        while atual.pai:
-            nivel += 1
-            atual = atual.pai
+        label = f"Tempo: {estado.tempo}\nEsq: {', '.join(estado.lado_esquerdo)}\nDir: {', '.join(estado.lado_direito)}"
         
-        if nivel not in estados_por_nivel:
-            estados_por_nivel[nivel] = []
-        estados_por_nivel[nivel].append(estado)
-    
-    # Adicionar todos os nós agrupados por nível para melhor visualização
-    for nivel, estados in estados_por_nivel.items():
-        with dot.subgraph(name=f"cluster_{nivel}") as c:
-            c.attr(label=f"Nível {nivel}", color="lightgrey")
-            for estado in estados:
-                label = f"ID: {estado.id}\nTempo: {estado.tempo}\nEsq: {', '.join(estado.lado_esquerdo)}\nDir: {', '.join(estado.lado_direito)}"
-                
-                # Definir cor e estilo do nó
-                if estado in caminho_solucao:
-                    c.node(str(estado.id), label=label, shape="box", style="filled", fillcolor="lightgreen")
-                else:
-                    c.node(str(estado.id), label=label, shape="box", style="filled", fillcolor="lightblue" if estado.lanterna == "direita" else "lightyellow")
+        # Definir cor e estilo do nó
+        if estado in caminho_solucao:
+            dot.node(str(estado.id), label=label, shape="box", style="filled", fillcolor="lightgreen")
+        else:
+            dot.node(str(estado.id), label=label, shape="box", style="filled", fillcolor="lightblue" if estado.lanterna == "direita" else "lightyellow")
     
     # Adicionar as arestas
     for estado in todos_estados:
@@ -576,6 +559,23 @@ def visualizar_arvore_busca(caminho_solucao, todos_estados):
                 dot.edge(str(estado.pai.id), str(estado.id), color="red", penwidth="2.0")
             else:
                 dot.edge(str(estado.pai.id), str(estado.id), color="gray")
+    
+    # Adicionar uma legenda no canto inferior direito
+    legenda_label = (
+        "<<b>Legenda:</b><br/>"
+        "<font color='green'>Nós verdes</font>: Caminho solução<br/>"
+        "<font color='blue'>Nós azuis</font>: Lanterna no lado direito<br/>"
+        "<font color='orange'>Nós amarelos</font>: Lanterna no lado esquerdo<br/>"
+        "<font color='red'>Arestas vermelhas</font>: Transições no caminho solução<br/>"
+        "<font color='gray'>Arestas cinzas</font>: Transições exploradas>"
+    )
+    dot.node(
+        "legenda",
+        label=legenda_label,
+        shape="plaintext",  # Remove a borda da legenda
+        fontsize="10",
+        pos="100,0!"  # Posiciona a legenda no canto inferior direito
+    )
     
     # Render e salvar o gráfico
     dot.render(view=True, cleanup=True)
