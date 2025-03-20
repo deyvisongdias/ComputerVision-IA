@@ -478,32 +478,6 @@ def custo_real(estado):
     return estado.tempo
 
 
-def heuristicaAestrela(estado):
-    soma = 0
-    for nome in estado.lado_esquerdo:
-        # Encontra o tempo de travessia de cada membro ainda no lado esquerdo
-        for membro in info:
-            if membro["nome"] == nome:
-                soma += membro["tempo"]
-                break
-    return soma
-
-
-def heuristica(estado):
-    # Heurística: tempo máximo de travessia dos membros no lado esquerdo + tempo de retorno da lanterna
-    max_tempo = 0
-    for nome in estado.lado_esquerdo:
-        for membro in info:
-            if membro["nome"] == nome:
-                max_tempo = max(max_tempo, membro["tempo"])
-                break
-    # Adiciona o tempo de retorno da lanterna (membro mais rápido no lado direito)
-    if estado.lado_direito:
-        min_tempo_direito = min(
-            [membro["tempo"] for membro in info if membro["nome"] in estado.lado_direito])
-        max_tempo += min_tempo_direito
-    return max_tempo
-
 def heuristica_gulosa(estado):
     # Tempo máximo de travessia dos membros no lado esquerdo
     if not estado.lado_esquerdo:
