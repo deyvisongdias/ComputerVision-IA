@@ -3,6 +3,10 @@ import heapq
 import time
 import graphviz
 from graphviz import Digraph
+import numpy as np
+
+#import os
+#os.environ["BROWSER"] = "explorer.exe"
 
 # Tempos de travessia de cada membro da banda
 info = [
@@ -27,7 +31,6 @@ transicoes_direita = [
     ["Adam"],
     ["Larry"]
 ]
-
 
 class Estado:
     def __init__(self, lado_esquerdo, lado_direito, lanterna, tempo, movimento=None, pai=None):
@@ -477,13 +480,69 @@ def busca_backtracking_com_visualizacao(estado_inicial):
 def custo_real(estado):
     return estado.tempo
 
-
+#CERTA
 def heuristica_gulosa(estado):
-    # Tempo máximo de travessia dos membros no lado esquerdo
-    if not estado.lado_esquerdo:
-        return 0  # Todos já estão no lado direito
-    max_tempo = max(membro["tempo"] for membro in info if membro["nome"] in estado.lado_esquerdo)
-    return max_tempo
+    total_waste = 0
+
+    if(estado.lanterna == "esquerda"):  
+            sum_time_waste = []
+
+            for transicao in transicoes_esquerda:
+                if all(membro in estado.lado_esquerdo for membro in transicao):
+                    walkers_time = [membro["tempo"] for membro in info if membro["nome"] in transicao]
+
+                    sum_time_waste.append(abs(walkers_time[0] - walkers_time[1]))
+
+            total_waste = np.mean(sum_time_waste)
+        
+    if(estado.lanterna == "direita"): 
+        walkers_time = [membro["tempo"] for membro in info if membro["nome"] in estado.movimento]
+
+        total_waste = abs(walkers_time[0] - walkers_time[1])   
+
+    return total_waste
+
+#TUNNELVISION
+#def heuristica_gulosa(estado):
+#    total_waste = 0
+#
+#    if(estado.lanterna == "esquerda"):
+#        if(not (estado.movimento == None)):
+#            total_waste = [membro["tempo"] for membro in info if membro["nome"] == estado.movimento[0]][0]
+#
+#    if(estado.lanterna == "direita"):        
+#        walkers_time = [membro["tempo"] for membro in info if membro["nome"] in estado.movimento]
+#        
+#        time_waste = abs(walkers_time[0] - walkers_time[1])
+#        
+#        lado_suposto = estado.lado_esquerdo.copy()
+#        
+#        min_tempo = min(membro["tempo"] for membro in info if membro["nome"] in estado.lado_direito)
+#        nome = [membro["nome"] for membro in info if membro["tempo"] == min_tempo]
+#
+#        lado_suposto.append(nome[0])
+#
+#        sum_time_waste = []
+#
+#        for transicao in transicoes_esquerda:
+#            if all(membro in lado_suposto for membro in transicao):
+#                walkers_time = [membro["tempo"] for membro in info if membro["nome"] in transicao]
+#
+#                sum_time_waste.append(abs(walkers_time[0] - walkers_time[1]))
+#
+#        future_time_waste = np.mean(sum_time_waste)
+#
+#        total_waste = time_waste + future_time_waste
+#
+#    return total_waste
+
+#ANTIGA
+#def heuristica_gulosa(estado):
+#    # Tempo máximo de travessia dos membros no lado esquerdo
+#    if not estado.lado_esquerdo:
+#        return 0  # Todos já estão no lado direito
+#    max_tempo = max(membro["tempo"] for membro in info if membro["nome"] in estado.lado_esquerdo)
+#    return max_tempo
 
 def heuristica_aestrela(estado):
     membros_esquerda = estado.lado_esquerdo.copy()
